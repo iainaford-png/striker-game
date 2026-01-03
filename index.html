@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Striker Career (ZX-ish)</title>
+<title>Striker Career (Match Engine)</title>
 <style>
   :root{
     --bg:#0b1220; --panel:#0f1b34; --fg:#e7f0ff; --muted:#a9b7d6; --accent:#4fd1c5;
@@ -32,20 +32,30 @@
        padding:10px 12px;border-radius:12px;font-weight:800;cursor:pointer}
   .btn:hover{border-color:rgba(255,255,255,.28)}
   .btn.primary{background:linear-gradient(180deg,#1d4ed8,#1e40af);border-color:rgba(255,255,255,.25)}
+  .btn.good{background:linear-gradient(180deg,#0ea5a4,#0f766e)}
   .btn.bad{background:linear-gradient(180deg,#ef4444,#b91c1c)}
+  .btn:disabled{opacity:.55;cursor:not-allowed}
   .center{display:flex;justify-content:center;gap:10px;flex-wrap:wrap}
+  .toast{margin-top:8px;color:var(--muted);font-size:13px;min-height:18px;line-height:1.35}
+  .scoreRow{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+  .scoreRow .team{font-weight:900}
+  .scoreRow .mid{display:flex;align-items:baseline;gap:10px}
+  .big{font-size:22px;font-weight:900;letter-spacing:.4px}
+  .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace}
+  .bar{height:10px;border-radius:999px;background:rgba(255,255,255,.10);overflow:hidden;border:1px solid rgba(255,255,255,.12)}
+  .bar > div{height:100%;background:linear-gradient(90deg,#22c55e,#60a5fa);width:0%}
+  canvas{width:100%;max-width:520px;aspect-ratio: 16/9; background:#0a2b18;border-radius:14px;
+         border:2px solid rgba(255,255,255,.18);display:block;margin:10px auto}
   table{width:100%;border-collapse:collapse;font-size:13px}
   th,td{padding:7px 6px;border-bottom:1px solid rgba(255,255,255,.10);text-align:left}
   th{color:#cfe0ff;font-weight:900}
-  td.right{text-align:right}
-  .toast{margin-top:8px;color:var(--muted);font-size:13px;min-height:18px}
 </style>
 </head>
 
 <body>
 <div class="wrap">
   <header>
-    <h1>⚽ Striker Career <span class="sub">(ZX-ish timing game)</span></h1>
+    <h1>⚽ Striker Career <span class="sub">(90s match engine)</span></h1>
     <span class="pill" id="pillCareer">Not started</span>
     <span class="pill" id="pillSeason">—</span>
     <span class="pill" id="pillForm">—</span>
@@ -54,61 +64,236 @@
   <div class="row">
     <div class="card" id="cardMain">
       <h2>Loading…</h2>
-      <div class="muted">If this stays blank, your browser is blocking scripts.</div>
+      <div class="muted">If this stays blank, refresh with ?v=21</div>
     </div>
 
     <div class="card" id="cardSide">
-      <h2>How it works</h2>
-      <p class="muted" style="margin:0;line-height:1.35">
-        Step A: create your player + pick a club.<br>
-        Next we’ll add the 90-second match engine.
-      </p>
+      <!-- dynamic -->
     </div>
   </div>
 </div>
 
 <script>
-/* ---------- DATA (Division 4 clubs) ---------- */
+/* =============================
+   STAGE A DATA
+============================= */
 const DIV4 = [
   "Clayton Vale","Ridgefield United","Eastmoor Town","Birchington FC","Cedarford Athletic",
   "Langford Rovers","Oldhaven Borough","Marshgate Town","Wheatley City","Foxbury Albion"
 ];
 
-/* ---------- HELPERS ---------- */
+/* =============================
+   HELPERS
+============================= */
 const $ = (id)=>document.getElementById(id);
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const rndi=(a,b)=>Math.floor(Math.random()*(b-a+1))+a;
 
-function save(state){
-  localStorage.setItem("strikerCareer_stageA", JSON.stringify(state));
-}
+function save(state){ localStorage.setItem("strikerCareer_stageB", JSON.stringify(state)); }
 function load(){
-  try{
-    const s = localStorage.getItem("strikerCareer_stageA");
-    return s ? JSON.parse(s) : null;
-  }catch(e){ return null; }
+  try{ const s=localStorage.getItem("strikerCareer_stageB"); return s?JSON.parse(s):null; }
+  catch{ return null; }
 }
-function wipe(){
-  localStorage.removeItem("strikerCareer_stageA");
+function wipe(){ localStorage.removeItem("strikerCareer_stageB"); }
+
+/* =============================
+   CAREER STATE (simple for now)
+============================= */
+function newCareer(playerName, clubName){
+  return {
+    playerName, clubName,
+    seasonYear: 1,
+    division: 4,
+    matchday: 1,
+    stats: { matches:0, goals:0, shots:0, avgRating:6.0, lastRating:6.0 },
+    ui: { view:"hub" }
+  };
 }
 
-/* ---------- UI RENDER ---------- */
 function setPills(state){
   if(!state){
-    $("pillCareer").textContent = "Not started";
-    $("pillSeason").textContent = "—";
-    $("pillForm").textContent = "—";
+    $("pillCareer").textContent="Not started";
+    $("pillSeason").textContent="—";
+    $("pillForm").textContent="—";
     return;
   }
   $("pillCareer").textContent = `${state.playerName} • ${state.clubName}`;
-  $("pillSeason").textContent = `Season ${state.seasonYear} • Division 4`;
-  $("pillForm").textContent = `Form: —`;
+  $("pillSeason").textContent = `Season ${state.seasonYear} • Div ${state.division} • Matchday ${state.matchday}`;
+  $("pillForm").textContent = `Rating: ${state.stats.avgRating.toFixed(1)} (last ${state.stats.lastRating.toFixed(1)})`;
 }
 
+/* =============================
+   MATCH ENGINE
+============================= */
+const MATCH_LEN = 90.0;
+
+let rt = null; // runtime
+
+function pointerConfig(div){
+  // higher divisions later: faster + smaller window
+  const speed = ({4: 2.0, 3: 2.7, 2: 3.5, 1: 4.4})[div] ?? 2.0;  // px per frame-ish
+  const window = ({4: 70, 3: 58, 2: 46, 1: 36})[div] ?? 70;       // px width
+  const chanceEvery = ({4: 5.4, 3: 4.8, 2: 4.2, 1: 3.8})[div] ?? 5.4;
+  const oppLambda = ({4: 1.0, 3: 1.2, 2: 1.4, 1: 1.7})[div] ?? 1.0; // expected opp goals
+  return { speed, window, chanceEvery, oppLambda };
+}
+
+function poisson(lambda){
+  let L = Math.exp(-lambda), k=0, p=1;
+  do { k++; p *= Math.random(); } while(p > L);
+  return k-1;
+}
+
+function startMatch(state){
+  const opp = DIV4.filter(t=>t!==state.clubName)[rndi(0, DIV4.length-2)];
+
+  const cfg = pointerConfig(state.division);
+  const oppGoals = poisson(cfg.oppLambda);  // total opp goals this match
+  const oppTimes = [];
+  for(let i=0;i<oppGoals;i++) oppTimes.push(Math.random() * MATCH_LEN);
+  oppTimes.sort((a,b)=>a-b);
+
+  rt = {
+    cfg,
+    tLeft: MATCH_LEN,
+    our: 0,
+    opp: 0,
+    oppTimes,
+    oppIdx: 0,
+    // chance system
+    chanceIn: 1.2,     // quick first chance
+    chanceEvery: cfg.chanceEvery,
+    canShoot: false,
+    locked: false,
+    // pointer
+    pos: rndi(0, 280),
+    dir: Math.random()<0.5? -1 : 1,
+    // player match stats
+    shots: 0,
+    goals: 0,
+    // teams
+    home: state.clubName,
+    away: opp,
+    msg: "Kick-off! Chances will come…",
+    _lastTs: null
+  };
+
+  state.ui.view = "match";
+  save(state);
+  render();
+  requestAnimationFrame(loopMatch);
+}
+
+function loopMatch(ts){
+  if(!rt) return;
+  if(rt._lastTs === null) rt._lastTs = ts;
+  const dt = (ts - rt._lastTs) / 1000;
+  rt._lastTs = ts;
+
+  rt.tLeft -= dt;
+  const elapsed = MATCH_LEN - rt.tLeft;
+
+  // opponent goals
+  while(rt.oppIdx < rt.oppTimes.length && elapsed >= rt.oppTimes[rt.oppIdx]){
+    rt.oppIdx++;
+    rt.opp++;
+    rt.msg = "They score… 😬";
+  }
+
+  // chances
+  rt.chanceIn -= dt;
+  if(rt.chanceIn <= 0){
+    rt.chanceIn += rt.chanceEvery;
+    rt.canShoot = true;
+    rt.msg = "Chance! SHOOT when you’re lined up.";
+  }
+
+  // pointer motion
+  rt.pos += rt.dir * rt.cfg.speed * 60 * dt; // scale to feel consistent
+  if(rt.pos <= 0){ rt.pos = 0; rt.dir = 1; }
+  if(rt.pos >= 280){ rt.pos = 280; rt.dir = -1; }
+
+  drawMatch();
+  updateMatchHUD();
+
+  if(rt.tLeft <= 0){
+    finishMatch();
+    return;
+  }
+  requestAnimationFrame(loopMatch);
+}
+
+function attemptShot(){
+  if(!rt) return;
+  if(!rt.canShoot) { rt.msg = "No chance on! Wait for the next attack…"; updateMatchHUD(); return; }
+  if(rt.locked) return;
+
+  rt.locked = true;
+  rt.canShoot = false;
+  rt.shots++;
+
+  const goalCenter = 150;
+  const half = rt.cfg.window/2;
+  const pointerCenter = rt.pos + 10;
+  const isGoal = Math.abs(pointerCenter - goalCenter) <= half;
+
+  if(isGoal){
+    rt.our++;
+    rt.goals++;
+    rt.msg = "GOAL! 🎉";
+  } else {
+    rt.msg = "Missed…";
+  }
+
+  // brief lockout so double taps don't spam
+  setTimeout(()=>{ if(rt) rt.locked = false; }, 350);
+
+  updateMatchHUD();
+}
+
+function calcRating(){
+  // simple: base + goals + conversion - concede
+  const conv = rt.shots ? (rt.goals/rt.shots) : 0;
+  let r = 5.9 + rt.goals*1.05 + conv*1.6 - rt.opp*0.3;
+  if(rt.our > rt.opp) r += 0.4;
+  else if(rt.our === rt.opp) r += 0.15;
+  return Math.round(clamp(r, 4.0, 9.5)*10)/10;
+}
+
+function finishMatch(){
+  const state = load();
+  if(!state){ rt=null; render(); return; }
+
+  const rating = calcRating();
+
+  // update career stats
+  state.stats.matches += 1;
+  state.stats.goals += rt.goals;
+  state.stats.shots += rt.shots;
+  state.stats.lastRating = rating;
+  // rolling avg-ish
+  state.stats.avgRating = Math.round(((state.stats.avgRating*0.85) + (rating*0.15))*10)/10;
+
+  // advance matchday (simple loop for now)
+  state.matchday += 1;
+
+  // store last result for post screen
+  state._last = { us: rt.home, opp: rt.away, our: rt.our, oppg: rt.opp, rating, goals: rt.goals, shots: rt.shots };
+
+  rt = null;
+  state.ui.view = "post";
+  save(state);
+  render();
+}
+
+/* =============================
+   UI RENDER
+============================= */
 function renderStart(){
   setPills(null);
 
   $("cardMain").innerHTML = `
     <h2>Start your career</h2>
-
     <div class="grid2">
       <div>
         <div class="muted">Player name</div>
@@ -139,26 +324,32 @@ function renderStart(){
   $("btnStart").onclick = ()=>{
     const name = ($("inpName").value || "").trim();
     const club = $("selClub").value;
-    if(!name){
-      $("toast").textContent = "Pop your player name in first 🙂";
-      return;
-    }
-    const state = { playerName:name, clubName:club, seasonYear:1 };
+    if(!name){ $("toast").textContent = "Pop your player name in first 🙂"; return; }
+    const state = newCareer(name, club);
     save(state);
-    renderHub(state);
+    render();
   };
 
-  $("btnContinue").onclick = ()=>{
-    const st = load();
-    if(st) renderHub(st);
-  };
-
+  $("btnContinue").onclick = ()=> render();
   $("btnReset").onclick = ()=>{
     wipe();
     $("toast").textContent = "Save cleared.";
     $("btnContinue").disabled = true;
     setPills(null);
   };
+
+  $("cardSide").innerHTML = `
+    <h2>How the match works</h2>
+    <p class="muted" style="margin:0;line-height:1.35">
+      Matches last <b>90 seconds</b>.<br>
+      Every few seconds you get a <b>chance</b>.<br>
+      Tap <b>SHOOT</b> when the pointer is in the scoring window.
+    </p>
+    <div class="divider"></div>
+    <p class="muted" style="margin:0;line-height:1.35">
+      Tip: on desktop you can press <b>Space</b> too.
+    </p>
+  `;
 }
 
 function renderHub(state){
@@ -167,31 +358,46 @@ function renderHub(state){
   $("cardMain").innerHTML = `
     <h2>Club Hub</h2>
     <div class="muted">Player: <b>${state.playerName}</b></div>
-    <div class="muted">Club: <b>${state.clubName}</b> (Division 4)</div>
+    <div class="muted">Club: <b>${state.clubName}</b> (Div ${state.division})</div>
+    <div class="divider"></div>
+
+    <div class="grid2">
+      <div class="card" style="background:rgba(255,255,255,.04)">
+        <div class="muted">Career stats</div>
+        <div style="margin-top:4px;font-weight:900">
+          Goals: ${state.stats.goals} • Matches: ${state.stats.matches}
+        </div>
+        <div class="muted" style="margin-top:6px">
+          Shots: ${state.stats.shots} • Avg rating: <b>${state.stats.avgRating.toFixed(1)}</b>
+        </div>
+      </div>
+      <div class="card" style="background:rgba(255,255,255,.04)">
+        <div class="muted">Next match</div>
+        <div style="margin-top:4px;font-weight:900">Matchday ${state.matchday}</div>
+        <div class="muted" style="margin-top:6px">Length: ${MATCH_LEN}s</div>
+      </div>
+    </div>
 
     <div class="divider"></div>
 
     <div class="center">
-      <button class="btn primary" id="btnNext">Next: add Match Engine</button>
-      <button class="btn" id="btnBack">Back</button>
+      <button class="btn primary" id="btnPlay">Play match (90s)</button>
       <button class="btn bad" id="btnReset2">Reset Save</button>
     </div>
 
-    <div class="toast" id="toast2">
-      You’re set. Next we wire the 90-second match and pointer timing.
-    </div>
+    <div class="toast">Next up: we’ll plug this into a 4×10 league table + promotions + transfers.</div>
   `;
 
   $("cardSide").innerHTML = `
     <h2>Division 4 clubs</h2>
-    <div class="muted" style="margin-bottom:6px">(${DIV4.length} teams)</div>
+    <div class="muted" style="margin-bottom:6px">(10 teams — inspired/fictional)</div>
     <div style="overflow:auto;max-height:520px">
       <table>
-        <thead><tr><th>#</th><th>Club</th></tr></thead>
+        <thead><tr><th>Club</th></tr></thead>
         <tbody>
-          ${DIV4.map((n,i)=>`
+          ${DIV4.map(n=>`
             <tr ${n===state.clubName ? `style="background:rgba(79,209,197,.12)"` : ""}>
-              <td class="right">${i+1}</td><td>${n}</td>
+              <td>${n}</td>
             </tr>
           `).join("")}
         </tbody>
@@ -199,29 +405,240 @@ function renderHub(state){
     </div>
   `;
 
-  $("btnNext").onclick = ()=>{
-    $("toast2").textContent = "Nice. Next message me ‘Ready for Match Engine’ and I’ll drop in the next code chunk.";
-  };
-  $("btnBack").onclick = renderStart;
-  $("btnReset2").onclick = ()=>{ wipe(); renderStart(); };
+  $("btnPlay").onclick = ()=> startMatch(state);
+  $("btnReset2").onclick = ()=>{ wipe(); render(); };
 }
 
-/* ---------- BOOT (with error display) ---------- */
+function renderMatch(state){
+  setPills(state);
+
+  $("cardMain").innerHTML = `
+    <h2>Matchday ${state.matchday} • Div ${state.division}</h2>
+
+    <div class="scoreRow">
+      <div class="team" id="tmHome">—</div>
+      <div class="mid">
+        <div class="big mono" id="score">0 - 0</div>
+        <div class="pill mono" id="clock">90.0s</div>
+      </div>
+      <div class="team" id="tmAway">—</div>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="muted" style="margin-bottom:6px">Time remaining</div>
+    <div class="bar"><div id="barFill"></div></div>
+
+    <canvas id="cv" width="300" height="170"></canvas>
+
+    <div class="center">
+      <button class="btn good" id="btnShoot">SHOOT</button>
+      <button class="btn" id="btnExit">Exit to hub</button>
+    </div>
+
+    <div class="toast" id="msg"></div>
+  `;
+
+  $("cardSide").innerHTML = `
+    <h2>Controls</h2>
+    <div class="muted">Tap <b>SHOOT</b> during a <b>Chance!</b></div>
+    <div class="muted" style="margin-top:6px">Desktop: <b>Space</b> to shoot</div>
+    <div class="divider"></div>
+    <div class="muted">Scoring window: <b>${pointerConfig(state.division).window}px</b></div>
+    <div class="muted">Pointer speed: <b>${pointerConfig(state.division).speed.toFixed(1)}</b></div>
+    <div class="divider"></div>
+    <div class="muted">Tip: if you press SHOOT when there’s no chance, it won’t count — it just reminds you to wait.</div>
+  `;
+
+  $("btnShoot").onclick = attemptShot;
+  $("btnExit").onclick = ()=>{
+    // abandon match: just return to hub
+    rt = null;
+    state.ui.view="hub";
+    save(state);
+    render();
+  };
+
+  const cv = $("cv");
+  cv.addEventListener("click", attemptShot, {passive:true});
+
+  window.onkeydown = (e)=>{
+    if(e.code === "Space" || e.code === "Enter"){
+      e.preventDefault();
+      attemptShot();
+    }
+  };
+
+  // initial draw
+  drawMatch();
+  updateMatchHUD();
+}
+
+function drawMatch(){
+  const cv = $("cv");
+  if(!cv || !rt) return;
+  const ctx = cv.getContext("2d");
+
+  ctx.clearRect(0,0,cv.width,cv.height);
+
+  // pitch
+  ctx.fillStyle = "#0a2b18";
+  ctx.fillRect(0,0,cv.width,cv.height);
+
+  // stripes
+  ctx.globalAlpha = 0.18;
+  for(let i=0;i<8;i++){
+    ctx.fillStyle = i%2===0 ? "#22c55e" : "#2dd4bf";
+    ctx.fillRect(i*(cv.width/8),0,cv.width/8,cv.height);
+  }
+  ctx.globalAlpha = 1;
+
+  // goal
+  ctx.fillStyle = "#ffffff";
+  ctx.fillRect(130, 0, 40, 18);
+
+  // center line
+  ctx.globalAlpha = 0.25;
+  ctx.fillRect(149, 0, 2, cv.height);
+  ctx.globalAlpha = 1;
+
+  // scoring window (hint)
+  const half = rt.cfg.window/2;
+  ctx.globalAlpha = 0.18;
+  ctx.fillStyle = "#ffffff";
+  ctx.fillRect(150 - half, 150, rt.cfg.window, 16);
+  ctx.globalAlpha = 1;
+
+  // pointer block
+  ctx.fillStyle = rt.canShoot ? "#ffffff" : "rgba(255,255,255,.55)";
+  ctx.fillRect(rt.pos, 150, 20, 16);
+
+  // small “chance light”
+  ctx.globalAlpha = 0.9;
+  ctx.fillStyle = rt.canShoot ? "#6ee7b7" : "#fb7185";
+  ctx.beginPath();
+  ctx.arc(18, 18, 6, 0, Math.PI*2);
+  ctx.fill();
+  ctx.globalAlpha = 1;
+}
+
+function updateMatchHUD(){
+  if(!rt) return;
+  const scoreEl = $("score");
+  const clockEl = $("clock");
+  const msgEl = $("msg");
+  const homeEl = $("tmHome");
+  const awayEl = $("tmAway");
+  const barFill = $("barFill");
+
+  if(homeEl) homeEl.textContent = rt.home;
+  if(awayEl) awayEl.textContent = rt.away;
+  if(scoreEl) scoreEl.textContent = `${rt.our} - ${rt.opp}`;
+  if(clockEl) clockEl.textContent = `${Math.max(0, rt.tLeft).toFixed(1)}s`;
+  if(msgEl) msgEl.textContent = rt.msg || "";
+
+  if(barFill){
+    const pct = clamp(((MATCH_LEN - rt.tLeft) / MATCH_LEN) * 100, 0, 100);
+    barFill.style.width = `${pct}%`;
+  }
+}
+
+function renderPost(state){
+  setPills(state);
+  const m = state._last;
+  const res = m.our > m.oppg ? "WIN ✅" : m.our < m.oppg ? "LOSS ❌" : "DRAW 🤝";
+
+  $("cardMain").innerHTML = `
+    <h2>Full-time • ${res}</h2>
+    <div class="scoreRow">
+      <div class="team">${m.us}</div>
+      <div class="mid">
+        <div class="big mono">${m.our} - ${m.oppg}</div>
+        <div class="pill">Rating: <b>${m.rating.toFixed(1)}</b></div>
+      </div>
+      <div class="team">${m.opp}</div>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="grid2">
+      <div class="card" style="background:rgba(255,255,255,.04)">
+        <div class="muted">This match</div>
+        <div style="margin-top:4px;font-weight:900">Goals: ${m.goals} • Shots: ${m.shots}</div>
+      </div>
+      <div class="card" style="background:rgba(255,255,255,.04)">
+        <div class="muted">Career totals</div>
+        <div style="margin-top:4px;font-weight:900">Goals: ${state.stats.goals} • Matches: ${state.stats.matches}</div>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="center">
+      <button class="btn primary" id="btnBackHub">Back to hub</button>
+      <button class="btn bad" id="btnReset3">Reset Save</button>
+    </div>
+
+    <div class="toast">Next step: league table + fixtures + promotion/relegation + transfer offers.</div>
+  `;
+
+  $("cardSide").innerHTML = `
+    <h2>Quick tip</h2>
+    <p class="muted" style="margin:0;line-height:1.35">
+      If the site doesn’t look updated after a commit, add a cache buster:
+      <span class="mono">?v=21</span>, <span class="mono">?v=22</span>, etc.
+    </p>
+  `;
+
+  $("btnBackHub").onclick = ()=>{
+    state.ui.view="hub";
+    save(state);
+    render();
+  };
+  $("btnReset3").onclick = ()=>{ wipe(); render(); };
+}
+
+function render(){
+  const state = load();
+
+  if(!state){
+    renderStart();
+    return;
+  }
+
+  if(state.ui.view === "match"){
+    // match runtime must exist; if not (refresh mid-match), send to hub
+    if(!rt){
+      state.ui.view = "hub";
+      save(state);
+      renderHub(state);
+      return;
+    }
+    renderMatch(state);
+    return;
+  }
+
+  if(state.ui.view === "post"){
+    renderPost(state);
+    return;
+  }
+
+  renderHub(state);
+}
+
+/* =============================
+   BOOT + ERROR DISPLAY
+============================= */
 window.addEventListener("error",(e)=>{
   $("cardMain").innerHTML = `
     <h2>Script error 😬</h2>
-    <div class="muted">Your page loaded, but the JavaScript hit an error.</div>
+    <div class="muted">Message: <b>${(e && e.message) ? e.message : "Unknown error"}</b></div>
     <div class="divider"></div>
-    <div class="muted"><b>${(e && e.message) ? e.message : "Unknown error"}</b></div>
-    <div class="muted">Tip: refresh with <b>?v=99</b> to bypass cache.</div>
+    <div class="muted">Try refreshing with <b>?v=99</b> to bypass cache.</div>
   `;
 });
 
-(function init(){
-  const st = load();
-  if(st) renderHub(st);
-  else renderStart();
-})();
+render();
 </script>
 </body>
 </html>

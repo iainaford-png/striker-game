@@ -1,4 +1,3 @@
-
 <!doctype html>
 <html lang="en">
 <head>
@@ -17,47 +16,32 @@
   header{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
   header h1{font-size:18px;margin:0;letter-spacing:.3px}
   header .sub{color:var(--muted);font-size:13px}
+  .pill{display:inline-flex;align-items:center;gap:8px;padding:6px 10px;border-radius:999px;
+        border:1px solid var(--line);background:rgba(255,255,255,.06);font-size:12px;color:var(--muted)}
   .row{display:grid;grid-template-columns:1.1fr .9fr;gap:12px}
   @media (max-width:860px){.row{grid-template-columns:1fr}}
   .card{background:rgba(15,27,52,.85);border:1px solid var(--line);border-radius:14px;padding:12px}
   .card h2{font-size:14px;margin:0 0 8px 0;color:#d9e6ff}
-  .btn{appearance:none;border:1px solid var(--line);background:#11224a;color:var(--fg);
-       padding:10px 12px;border-radius:12px;font-weight:700;cursor:pointer}
-  .btn:hover{border-color:rgba(255,255,255,.28)}
-  .btn.primary{background:linear-gradient(180deg,#1d4ed8,#1e40af);border-color:rgba(255,255,255,.25)}
-  .btn.good{background:linear-gradient(180deg,#0ea5a4,#0f766e)}
-  .btn.bad{background:linear-gradient(180deg,#ef4444,#b91c1c)}
-  .btn:disabled{opacity:.55;cursor:not-allowed}
-  .pill{display:inline-flex;align-items:center;gap:8px;padding:6px 10px;border-radius:999px;
-        border:1px solid var(--line);background:rgba(255,255,255,.06);font-size:12px;color:var(--muted)}
+  .muted{color:var(--muted)}
+  .divider{height:1px;background:rgba(255,255,255,.12);margin:10px 0}
   .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
   @media (max-width:520px){.grid2{grid-template-columns:1fr}}
   input,select{width:100%;padding:10px 10px;border-radius:10px;border:1px solid var(--line);
                background:#0b1736;color:var(--fg);outline:none}
+  .btn{appearance:none;border:1px solid var(--line);background:#11224a;color:var(--fg);
+       padding:10px 12px;border-radius:12px;font-weight:800;cursor:pointer}
+  .btn:hover{border-color:rgba(255,255,255,.28)}
+  .btn.primary{background:linear-gradient(180deg,#1d4ed8,#1e40af);border-color:rgba(255,255,255,.25)}
+  .btn.bad{background:linear-gradient(180deg,#ef4444,#b91c1c)}
+  .center{display:flex;justify-content:center;gap:10px;flex-wrap:wrap}
   table{width:100%;border-collapse:collapse;font-size:13px}
   th,td{padding:7px 6px;border-bottom:1px solid rgba(255,255,255,.10);text-align:left}
-  th{color:#cfe0ff;font-weight:800}
+  th{color:#cfe0ff;font-weight:900}
   td.right{text-align:right}
-  .muted{color:var(--muted)}
-  .big{font-size:22px;font-weight:900;letter-spacing:.5px}
-  .score{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:6px 0 8px}
-  .score .team{font-weight:900}
-  .score .mid{display:flex;gap:10px;align-items:baseline}
-  .score .mid .big{min-width:66px;text-align:center}
-  .bar{height:10px;border-radius:999px;background:rgba(255,255,255,.10);overflow:hidden;border:1px solid rgba(255,255,255,.12)}
-  .bar > div{height:100%;background:linear-gradient(90deg,#22c55e,#60a5fa);width:0%}
-  canvas{width:100%;max-width:520px;aspect-ratio: 16/9; background:#0a2b18;border-radius:14px;
-         border:2px solid rgba(255,255,255,.18);display:block;margin:10px auto}
-  .center{display:flex;justify-content:center;gap:10px;flex-wrap:wrap}
   .toast{margin-top:8px;color:var(--muted);font-size:13px;min-height:18px}
-  .divider{height:1px;background:rgba(255,255,255,.12);margin:10px 0}
-  .modalBack{position:fixed;inset:0;background:rgba(0,0,0,.55);display:none;align-items:center;justify-content:center;padding:16px}
-  .modal{max-width:560px;width:100%;background:#0b1736;border:1px solid rgba(255,255,255,.18);border-radius:16px;padding:14px}
-  .modal h3{margin:0 0 8px 0}
-  .modal p{margin:0 0 10px 0;color:var(--muted);line-height:1.35}
-  .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace}
 </style>
 </head>
+
 <body>
 <div class="wrap">
   <header>
@@ -69,390 +53,175 @@
 
   <div class="row">
     <div class="card" id="cardMain">
-      <!-- dynamic -->
+      <h2>Loading…</h2>
+      <div class="muted">If this stays blank, your browser is blocking scripts.</div>
     </div>
 
     <div class="card" id="cardSide">
-      <!-- dynamic -->
-    </div>
-  </div>
-
-  <div class="modalBack" id="modalBack">
-    <div class="modal" id="modal">
-      <!-- dynamic -->
+      <h2>How it works</h2>
+      <p class="muted" style="margin:0;line-height:1.35">
+        Step A: create your player + pick a club.<br>
+        Next we’ll add the 90-second match engine.
+      </p>
     </div>
   </div>
 </div>
 
 <script>
-/* =========================
-   DATA: Fictional-inspired clubs
-   ========================= */
-const LEAGUES = [
-  { name:"Division 1", key:1, strengthBase:1.35, teams:[
-    "Northport Albion","Kingsmere United","Riverside Rovers","Redcastle Town","Eastbridge City",
-    "Wyndale Athletic","Portchester Vale","Ironford FC","Stonemouth Wanderers","Greenwich Borough"
-  ]},
-  { name:"Division 2", key:2, strengthBase:1.15, teams:[
-    "Briarford County","Larkhall Town","Westmere Rangers","Oakhampton FC","Crosby Dockers",
-    "Silverton Athletic","Ashford Park","Millgate United","Seabourne Town","Heatherby Rovers"
-  ]},
-  { name:"Division 3", key:3, strengthBase:1.00, teams:[
-    "Dunwich FC","Pinehurst Town","Moorland Albion","Harbourgate United","Kestrelfield City",
-    "Newbridge Athletic","Stoneleigh Rovers","Fairhaven FC","Wellington Park","Brookside Town"
-  ]},
-  { name:"Division 4", key:4, strengthBase:0.88, teams:[
-    "Clayton Vale","Ridgefield United","Eastmoor Town","Birchington FC","Cedarford Athletic",
-    "Langford Rovers","Oldhaven Borough","Marshgate Town","Wheatley City","Foxbury Albion"
-  ]}
+/* ---------- DATA (Division 4 clubs) ---------- */
+const DIV4 = [
+  "Clayton Vale","Ridgefield United","Eastmoor Town","Birchington FC","Cedarford Athletic",
+  "Langford Rovers","Oldhaven Borough","Marshgate Town","Wheatley City","Foxbury Albion"
 ];
 
-const PROMOTE_N = 2;
-const RELEGATE_N = 2;
-const MATCH_LENGTH_SEC = 90;
-
-/* =========================
-   UTIL
-   ========================= */
+/* ---------- HELPERS ---------- */
 const $ = (id)=>document.getElementById(id);
-const rnd = (a,b)=>Math.random()*(b-a)+a;
-const rndi = (a,b)=>Math.floor(rnd(a,b+1));
-const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
-
-function deepClone(x){ return JSON.parse(JSON.stringify(x)); }
-
-function poisson(lambda){
-  // small, cheap poisson sampler
-  let L = Math.exp(-lambda), k=0, p=1;
-  do { k++; p *= Math.random(); } while(p > L);
-  return k-1;
-}
 
 function save(state){
-  localStorage.setItem("strikerCareer_v1", JSON.stringify(state));
+  localStorage.setItem("strikerCareer_stageA", JSON.stringify(state));
 }
 function load(){
   try{
-    const s = localStorage.getItem("strikerCareer_v1");
+    const s = localStorage.getItem("strikerCareer_stageA");
     return s ? JSON.parse(s) : null;
-  }catch{ return null; }
+  }catch(e){ return null; }
 }
 function wipe(){
-  localStorage.removeItem("strikerCareer_v1");
+  localStorage.removeItem("strikerCareer_stageA");
 }
 
-/* =========================
-   FIXTURES (Circle method for 10 teams)
-   produces 18 rounds (double round robin)
-   ========================= */
-function buildFixtures(teamNames){
-  const n = teamNames.length; // 10
-  const idx = [...Array(n).keys()];
-  // circle method needs even n (we have 10)
-  let a = idx.slice(0, n/2);
-  let b = idx.slice(n/2).reverse();
-  const rounds = [];
-
-  for(let r=0;r<n-1;r++){
-    const pairings = [];
-    for(let i=0;i<a.length;i++){
-      const home = a[i];
-      const away = b[i];
-      // alternate home/away to balance
-      if(r % 2 === 0){
-        pairings.push([home, away]);
-      }else{
-        pairings.push([away, home]);
-      }
-    }
-    rounds.push(pairings);
-    // rotate (keep first of a fixed)
-    const fixed = a[0];
-    const movedA = a.slice(1);
-    const movedB = b.slice(0);
-    const newA = [fixed, movedB[0], ...movedA.slice(0, movedA.length-1)];
-    const newB = [...movedA.slice(movedA.length-1), ...movedB.slice(1)];
-    a = newA;
-    b = newB;
-  }
-
-  // double: mirror fixtures swapping home/away
-  const second = rounds.map(round => round.map(([h,a])=>[a,h]));
-  return rounds.concat(second); // 18 rounds
-}
-
-/* =========================
-   GAME STATE
-   ========================= */
-function newCareer(playerName, startTeamName){
-  const div = 4;
-  const league = LEAGUES.find(l=>l.key===div);
-  const teams = league.teams.slice();
-  const teamIndex = teams.indexOf(startTeamName);
-
-  const fixtures = buildFixtures(teams);
-
-  const table = teams.map((name,i)=>({
-    name, id:i, P:0,W:0,D:0,L:0,GF:0,GA:0,GD:0,PTS:0
-  }));
-
-  const state = {
-    version:1,
-    player:{
-      name: playerName,
-      // performance
-      matches:0, goals:0, shots:0,
-      avgRating:6.0, lastRating:6.0, form:[],
-    },
-    season:{
-      year: 1,
-      division: div,
-      clubId: teamIndex,
-      fixtures, // array rounds: round -> pairings [homeId, awayId]
-      round: 0, // 0..17
-      table,
-      completed:false
-    },
-    ui:{ view:"hub" } // hub | match | post | seasonEnd
-  };
-
-  save(state);
-  return state;
-}
-
-function getLeague(state){
-  return LEAGUES.find(l=>l.key===state.season.division);
-}
-function teamName(state, id){
-  return getLeague(state).teams[id];
-}
-function tableSorted(state){
-  const t = deepClone(state.season.table);
-  t.forEach(x=>{ x.GD = x.GF - x.GA; });
-  t.sort((a,b)=> b.PTS - a.PTS || b.GD - a.GD || b.GF - a.GF || a.name.localeCompare(b.name));
-  return t;
-}
-function updatePills(state){
-  $("pillCareer").textContent = `${state.player.name} • ${teamName(state, state.season.clubId)}`;
-  $("pillSeason").textContent = `Season ${state.season.year} • ${getLeague(state).name} • Matchday ${state.season.round+1}/18`;
-  const form = state.player.form.slice(-5);
-  $("pillForm").textContent = form.length ? `Form (last ${form.length}): ${form.map(x=>x>=7?"🟩":x>=6?"🟨":"🟥").join("")}` : `Form: —`;
-}
-
-/* =========================
-   MATCH ENGINE (90s)
-   ========================= */
-let matchRuntime = null;
-
-function getPointerConfig(div){
-  // Higher division -> faster pointer + narrower goal window
-  const speed = ({4:1.6,3:2.3,2:3.1,1:4.0})[div] ?? 2.0;
-  const window = ({4:54,3:46,2:38,1:30})[div] ?? 44; // pixels wide
-  return { speed, window };
-}
-
-function startMatch(state){
-  const div = state.season.division;
-  const round = state.season.round;
-  const fixtures = state.season.fixtures[round];
-  // find player's fixture
-  const clubId = state.season.clubId;
-  const fx = fixtures.find(([h,a])=>h===clubId || a===clubId);
-  const homeId = fx[0], awayId = fx[1];
-  const isHome = homeId === clubId;
-  const oppId = isHome ? awayId : homeId;
-
-  // opponent strength vs us
-  const league = getLeague(state);
-  const base = league.strengthBase;
-  const clubStrength = base + (state.player.avgRating-6.0)*0.06; // your form helps team a bit
-  const oppStrength  = base + rnd(-0.08, 0.08);
-
-  // chances frequency: more in higher divisions (game feels busier)
-  const chanceEvery = clamp(6.0 - (5-div)*0.6, 3.8, 6.5);
-
-  // expected opponent goals in 90s: scaled by relative strength
-  const oppLambda = clamp(0.9 * (oppStrength/clubStrength), 0.25, 1.9);
-
-  state.ui.view = "match";
-  save(state);
-
-  matchRuntime = {
-    homeId, awayId, clubId, oppId, isHome,
-    tLeft: MATCH_LENGTH_SEC,
-    ourGoals: 0,
-    oppGoals: 0,
-    // mini-game state
-    locked: false,
-    pos: 0,
-    dir: 1,
-    // chance windows
-    nextChanceIn: chanceEvery,
-    chanceEvery,
-    // opp scoring schedule
-    oppGoalTimes: buildOppGoalTimes(oppLambda),
-    oppLambda,
-    // rating components
-    chances:0,
-    shots:0,
-    goals:0,
-    lastMsg:"",
-    div
-  };
-
-  render();
-  requestAnimationFrame(matchLoop);
-}
-
-function buildOppGoalTimes(lambda){
-  const goals = poisson(lambda);
-  const times = [];
-  for(let i=0;i<goals;i++){
-    // spread over match
-    times.push(rnd(8, MATCH_LENGTH_SEC-6));
-  }
-  times.sort((a,b)=>a-b);
-  return times;
-}
-
-function matchLoop(ts){
-  if(!matchRuntime) return;
-  if(!matchRuntime._last) matchRuntime._last = ts;
-  const dt = (ts - matchRuntime._last)/1000;
-  matchRuntime._last = ts;
-
-  // countdown
-  matchRuntime.tLeft -= dt;
-
-  // opponent goals trigger
-  while(matchRuntime.oppGoalTimes.length && matchRuntime.tLeft <= (MATCH_LENGTH_SEC - matchRuntime.oppGoalTimes[0])){
-    // ignore; easier to handle by elapsed
-    break;
-  }
-
-  const elapsed = MATCH_LENGTH_SEC - matchRuntime.tLeft;
-  while(matchRuntime.oppGoalTimes.length && elapsed >= matchRuntime.oppGoalTimes[0]){
-    matchRuntime.oppGoalTimes.shift();
-    matchRuntime.oppGoals += 1;
-    matchRuntime.lastMsg = `They score… 😬`;
-  }
-
-  // chances
-  matchRuntime.nextChanceIn -= dt;
-  if(matchRuntime.nextChanceIn <= 0){
-    matchRuntime.nextChanceIn += matchRuntime.chanceEvery;
-    // open a chance (unlock shooting)
-    matchRuntime.locked = false;
-    matchRuntime.chances += 1;
-    matchRuntime.lastMsg = `Chance! Tap SHOOT at the right moment.`;
-  }
-
-  // pointer motion always runs
-  const cfg = getPointerConfig(matchRuntime.div);
-  matchRuntime.pos += matchRuntime.dir * cfg.speed * 60 * dt; // scale for dt
-  if(matchRuntime.pos <= 0){ matchRuntime.pos = 0; matchRuntime.dir = 1; }
-  if(matchRuntime.pos >= 300-20){ matchRuntime.pos = 300-20; matchRuntime.dir = -1; }
-
-  if(matchRuntime.tLeft <= 0){
-    finishMatch();
+/* ---------- UI RENDER ---------- */
+function setPills(state){
+  if(!state){
+    $("pillCareer").textContent = "Not started";
+    $("pillSeason").textContent = "—";
+    $("pillForm").textContent = "—";
     return;
   }
-
-  renderMatchCanvas();
-  renderMatchHUD();
-  requestAnimationFrame(matchLoop);
+  $("pillCareer").textContent = `${state.playerName} • ${state.clubName}`;
+  $("pillSeason").textContent = `Season ${state.seasonYear} • Division 4`;
+  $("pillForm").textContent = `Form: —`;
 }
 
-function shoot(){
-  if(!matchRuntime || matchRuntime.locked) return;
-  matchRuntime.locked = true;
-  matchRuntime.shots += 1;
+function renderStart(){
+  setPills(null);
 
-  const cfg = getPointerConfig(matchRuntime.div);
-  const goalCenter = 150;
-  const half = cfg.window/2;
-  const pointerCenter = matchRuntime.pos + 10;
-  const isGoal = Math.abs(pointerCenter - goalCenter) <= half;
+  $("cardMain").innerHTML = `
+    <h2>Start your career</h2>
 
-  if(isGoal){
-    matchRuntime.ourGoals += 1;
-    matchRuntime.goals += 1;
-    matchRuntime.lastMsg = `GOAL! 🎉`;
-  }else{
-    matchRuntime.lastMsg = `Missed…`;
-  }
-  renderMatchHUD();
+    <div class="grid2">
+      <div>
+        <div class="muted">Player name</div>
+        <input id="inpName" placeholder="e.g., Ian Ford" maxlength="24" />
+      </div>
+      <div>
+        <div class="muted">Choose a Division 4 club</div>
+        <select id="selClub"></select>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="center">
+      <button class="btn primary" id="btnStart">Start Career</button>
+      <button class="btn" id="btnContinue" disabled>Continue</button>
+      <button class="btn bad" id="btnReset">Reset Save</button>
+    </div>
+
+    <div class="toast" id="toast"></div>
+  `;
+
+  $("selClub").innerHTML = DIV4.map(n=>`<option>${n}</option>`).join("");
+
+  const existing = load();
+  $("btnContinue").disabled = !existing;
+
+  $("btnStart").onclick = ()=>{
+    const name = ($("inpName").value || "").trim();
+    const club = $("selClub").value;
+    if(!name){
+      $("toast").textContent = "Pop your player name in first 🙂";
+      return;
+    }
+    const state = { playerName:name, clubName:club, seasonYear:1 };
+    save(state);
+    renderHub(state);
+  };
+
+  $("btnContinue").onclick = ()=>{
+    const st = load();
+    if(st) renderHub(st);
+  };
+
+  $("btnReset").onclick = ()=>{
+    wipe();
+    $("toast").textContent = "Save cleared.";
+    $("btnContinue").disabled = true;
+    setPills(null);
+  };
 }
 
-function finishMatch(){
-  // commit result into tables
-  const s = load() || stateGlobal;
-  const st = s;
+function renderHub(state){
+  setPills(state);
 
-  const rt = matchRuntime;
-  matchRuntime = null;
+  $("cardMain").innerHTML = `
+    <h2>Club Hub</h2>
+    <div class="muted">Player: <b>${state.playerName}</b></div>
+    <div class="muted">Club: <b>${state.clubName}</b> (Division 4)</div>
 
-  // apply this round: simulate all other matches first
-  simulateRoundOthers(st, rt.homeId, rt.awayId);
+    <div class="divider"></div>
 
-  // then apply our match
-  applyResultToTable(st, rt.homeId, rt.awayId, rt.isHome ? rt.ourGoals : rt.oppGoals, rt.isHome ? rt.oppGoals : rt.ourGoals);
+    <div class="center">
+      <button class="btn primary" id="btnNext">Next: add Match Engine</button>
+      <button class="btn" id="btnBack">Back</button>
+      <button class="btn bad" id="btnReset2">Reset Save</button>
+    </div>
 
-  // update player stats / rating
-  const rating = calcRating(rt);
-  st.player.matches += 1;
-  st.player.goals += rt.goals;
-  st.player.shots += rt.shots;
-  st.player.lastRating = rating;
-  st.player.form.push(rating);
-  st.player.avgRating = avg(st.player.form.slice(-8), 6.0);
+    <div class="toast" id="toast2">
+      You’re set. Next we wire the 90-second match and pointer timing.
+    </div>
+  `;
 
-  // advance matchday
-  st.season.round += 1;
-  if(st.season.round >= 18){
-    st.season.completed = true;
-    st.ui.view = "seasonEnd";
-  }else{
-    st.ui.view = "post";
-    st._lastMatchSummary = {
-      us: teamName(st, st.season.clubId),
-      opp: teamName(st, rt.oppId),
-      ourGoals: rt.ourGoals,
-      oppGoals: rt.oppGoals,
-      rating
-    };
-  }
+  $("cardSide").innerHTML = `
+    <h2>Division 4 clubs</h2>
+    <div class="muted" style="margin-bottom:6px">(${DIV4.length} teams)</div>
+    <div style="overflow:auto;max-height:520px">
+      <table>
+        <thead><tr><th>#</th><th>Club</th></tr></thead>
+        <tbody>
+          ${DIV4.map((n,i)=>`
+            <tr ${n===state.clubName ? `style="background:rgba(79,209,197,.12)"` : ""}>
+              <td class="right">${i+1}</td><td>${n}</td>
+            </tr>
+          `).join("")}
+        </tbody>
+      </table>
+    </div>
+  `;
 
-  save(st);
-  render();
+  $("btnNext").onclick = ()=>{
+    $("toast2").textContent = "Nice. Next message me ‘Ready for Match Engine’ and I’ll drop in the next code chunk.";
+  };
+  $("btnBack").onclick = renderStart;
+  $("btnReset2").onclick = ()=>{ wipe(); renderStart(); };
 }
 
-function avg(arr, fallback){
-  if(!arr || !arr.length) return fallback;
-  return arr.reduce((a,b)=>a+b,0)/arr.length;
-}
+/* ---------- BOOT (with error display) ---------- */
+window.addEventListener("error",(e)=>{
+  $("cardMain").innerHTML = `
+    <h2>Script error 😬</h2>
+    <div class="muted">Your page loaded, but the JavaScript hit an error.</div>
+    <div class="divider"></div>
+    <div class="muted"><b>${(e && e.message) ? e.message : "Unknown error"}</b></div>
+    <div class="muted">Tip: refresh with <b>?v=99</b> to bypass cache.</div>
+  `;
+});
 
-function calcRating(rt){
-  // simple match rating:
-  // base 5.8 + goals*1.1 + (conversion)*1.8 - concede*0.4 + clutch bonus late
-  const conv = rt.shots ? (rt.goals/rt.shots) : 0;
-  let r = 5.8 + rt.goals*1.1 + conv*1.8 - rt.oppGoals*0.35;
-  // small bonus for win/draw
-  if(rt.ourGoals > rt.oppGoals) r += 0.4;
-  else if(rt.ourGoals === rt.oppGoals) r += 0.15;
-  // clamp
-  return Math.round(clamp(r, 4.0, 9.5)*10)/10;
-}
-
-function simulateRoundOthers(state, homeId, awayId){
-  const round = state.season.round;
-  const fixtures = state.season.fixtures[round];
-  const league = getLeague(state);
-  const base = league.strengthBase;
-
-  for(const [h,a] of fixtures){
-    if((h===homeId && a===awayId) || (h===awayId && a===homeId)) continue;
-
-    // strengths with tiny randomness
-    const sh = base + rnd(-0.10, 0.10);
-    const sa = base + rnd(-0.10, 0.
+(function init(){
+  const st = load();
+  if(st) renderHub(st);
+  else renderStart();
+})();
+</script>
+</body>
+</html>
